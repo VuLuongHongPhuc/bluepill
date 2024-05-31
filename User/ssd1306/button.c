@@ -13,7 +13,7 @@
 /* Private typedef -----------------------------------------------------------*/
 
 /* Private define ------------------------------------------------------------*/
-#define BUTTON_HEIGHT   11
+#define BUTTON_HEIGHT   11      /*!< height min = 11 */
 
 /* Private variables ---------------------------------------------------------*/
 static int16_t _btnWidth = 50;
@@ -48,7 +48,13 @@ void DrawButtonLine(int16_t x, int16_t y, int16_t width, uint8_t color)
 }
 
 
-/* height min = 11*/
+/*! \brief Draw button
+ * \param x Coordinate X
+ * \param y Coordinate Y
+ * \param text Content to display
+ * \param textSize Font size
+ * \param selected To highlight the button
+ * */
 void DrawButton(int16_t x, int16_t y, const char* text, uint8_t textSize, bool selected)
 {
 	int16_t width = _btnWidth;

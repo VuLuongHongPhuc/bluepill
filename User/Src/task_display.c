@@ -1,21 +1,12 @@
 /*
- * mainTask.c
+ * task_display.c
  *
- *  Created on: May 6, 2024
- *      Author: Phuc VU
- *
- *
+ *  Created on: May 28, 2024
+ *      Author: admin
  */
 
 
-
-/* Includes ------------------------------------------------------------------*/
-#include "main.h"
-
-#include "usbd_def.h"
-#include "usbd_cdc.h"
-#include "usb_device.h"
-#include "usbd_cdc_if.h"
+#include "spi.h"
 
 #include "cmsis_os.h"
 //#include "semphr.h"
@@ -25,18 +16,9 @@
 #include "../ssd1306/button.h"
 #include "../ssd1306/convert.h"
 
-/* Private typedef -----------------------------------------------------------*/
-
 /* Private define ------------------------------------------------------------*/
-
-/* Private macro -------------------------------------------------------------*/
-
-/* Private variables ---------------------------------------------------------*/
-//extern CAN_HandleTypeDef hcan;
-extern SPI_HandleTypeDef hspi1;
-
-static uint8_t _usb_txbuf[64] = {0};
-static uint8_t _usb_rxbuf[64] = {0};
+#define DefNbCharIndex 2	// index
+#define DefNbCharTimeElapse 5
 
 /* Private function prototypes -----------------------------------------------*/
 static inline void SPI_Transmit(uint8_t* data, uint16_t len);
@@ -44,65 +26,14 @@ static inline void SPI_Delay(uint32_t milis);
 static inline void GPIO_WritePinCS(GPIO_PinState PinState);
 static inline void GPIO_WritePinDC(GPIO_PinState PinState);
 static inline void GPIO_WritePinRESET(GPIO_PinState PinState);
-static inline void EnableCoreSysClock(void);
-static inline uint32_t GetSysCoreClockCount();
 
+//static inline void EnableCoreSysClock(void);
+//static inline uint32_t GetSysCoreClockCount();
 
-/* Global function prototypes -----------------------------------------------*/
-void onUsbReceive(uint8_t* pBuf, uint32_t* pLen);
-
-
-/* Private code --------------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
 
 
 
-/* Global code ---------------------------------------------------------------*/
-
-void onUsbReceive(uint8_t* pBuf, uint32_t* pLen)
-{
-
-	for(int i=0; i< *pLen; i++)
-	{
-		_usb_rxbuf[i] = pBuf[i];
-	}
-
-	if ( (_usb_rxbuf[0] == 0x5A) && (_usb_rxbuf[1] == 0x63))
-	{
-		HAL_GPIO_TogglePin(LED_BUILTIN_GPIO_Port, LED_BUILTIN_Pin);
-	}
-}
-
-
-
-void Task_main(void *argument)
-{
-	/* init code for USB_DEVICE */
-	MX_USB_DEVICE_Init();
-
-	_usb_txbuf[0] = 0xAA;
-
-	while(1)
-	{
-		osDelay(500);
-		//HAL_GPIO_TogglePin(LED_BUILTIN_GPIO_Port, LED_BUILTIN_Pin);
-
-		CDC_Transmit_FS(_usb_txbuf, 4);
-	}
-}
-
-/* Through SPI: USB and CAN incompatible (know problem) */
-void Task_can(void *argument)
-{
-	while(1)
-	{
-		osDelay(1);
-	}
-}
-
-
-
-#define DefNbCharIndex 2	// index
-#define DefNbCharTimeElapse 5
 void Task_display(void *argument)
 {
 	char cnumber[DefNbCharIndex+1];
@@ -111,7 +42,7 @@ void Task_display(void *argument)
 
 	char ctimenumber[DefNbCharTimeElapse+1];
 	uint32_t timeElapse;
-	uint32_t rawTimeOpe;
+	uint32_t current_time;
 
 
 	// init. SSD1306
@@ -128,8 +59,6 @@ void Task_display(void *argument)
 	// display logo prebuild
 	SSD1306_Display();
 
-	EnableCoreSysClock();
-	//xTaskGetTickCount();
 
 	while(1)
 	{
@@ -139,7 +68,7 @@ void Task_display(void *argument)
 		//for( int i=0; i<11; i++) { ssd1306_testsequence(i); osDelay(1000); }
 
 		// begin time elapse
-		rawTimeOpe = GetSysCoreClockCount();
+		current_time = xTaskGetTickCount();
 
 
 		SSD1306_Clear();
@@ -174,8 +103,8 @@ void Task_display(void *argument)
 		if (index == 4) { index = 0; }
 
 		// end time elapse
-		timeElapse = (GetSysCoreClockCount() - rawTimeOpe);
-		timeElapse /= (SystemCoreClock/1000000);// time in µs
+		timeElapse = (xTaskGetTickCount() - current_time);
+		timeElapse *= portTICK_RATE_MS;
 
 	}
 }
@@ -236,7 +165,10 @@ inline void GPIO_WritePinRESET(GPIO_PinState PinState)
 /* END: SPI Hardware dependencies */
 
 
-
+/* OK. but need ITM debug active
+ *
+ * timeElapse = (GetSysCoreClockCount() - last_time);
+ * timeElapse /= (SystemCoreClock/1000000);// time in µs
 inline void EnableCoreSysClock()
 {
 	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
@@ -248,6 +180,7 @@ inline uint32_t GetSysCoreClockCount()
 {
 	return DWT->CYCCNT;
 }
+*/
 
 /* OK
 // from arduino-ststm32 :
@@ -277,104 +210,5 @@ uint32_t getCurrentMicros(void)
 }
 */
 
-
-#if 0
-void CAN_SetBaudrate(uint16_t baudrate)
-{
-	// With APB2 = 72MHz
-
-	(void)HAL_CAN_Stop(&hcan);
-
-	(void)HAL_CAN_DeInit(&hcan);
-
-
-	switch(baudrate)
-	{
-		case 10:
-		{
-			hcan.Init.Prescaler = 225;
-			hcan.Init.TimeSeg1 = CAN_BS1_13TQ;
-			hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-		}break;
-
-		case 20:
-		{
-			hcan.Init.Prescaler = 100;
-			hcan.Init.TimeSeg1 = CAN_BS1_15TQ;
-			hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-		}break;
-
-		case 50:
-		{
-			hcan.Init.Prescaler = 45;
-			hcan.Init.TimeSeg1 = CAN_BS1_13TQ;
-			hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-		}break;
-
-		case 100:
-		{
-			hcan.Init.Prescaler = 20;
-			hcan.Init.TimeSeg1 = CAN_BS1_15TQ;
-			hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-		}break;
-
-		case 125:
-		{
-			hcan.Init.Prescaler = 18;
-			hcan.Init.TimeSeg1 = CAN_BS1_13TQ;
-			hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-		}break;
-
-		case 250:
-		{
-			hcan.Init.Prescaler = 9;
-			hcan.Init.TimeSeg1 = CAN_BS1_13TQ;
-			hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-		}break;
-
-		default:
-		case 500:
-		{
-			hcan.Init.Prescaler = 4;
-			hcan.Init.TimeSeg1 = CAN_BS1_15TQ;
-			hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-		}break;
-
-		case 800:
-		{
-			hcan.Init.Prescaler = 3;
-			hcan.Init.TimeSeg1 = CAN_BS1_12TQ;
-			hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-		}break;
-
-		case 1000:
-		{
-			hcan.Init.Prescaler = 2;
-			hcan.Init.TimeSeg1 = CAN_BS1_15TQ;
-			hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-		}break;
-	}
-
-
-	hcan.Instance = CAN1;
-	//hcan.Init.Prescaler = 4;
-	hcan.Init.Mode = CAN_MODE_NORMAL;
-	hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-	//hcan.Init.TimeSeg1 = CAN_BS1_15TQ;
-	//hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
-	hcan.Init.TimeTriggeredMode = DISABLE;
-	hcan.Init.AutoBusOff = DISABLE;
-	hcan.Init.AutoWakeUp = DISABLE;
-	hcan.Init.AutoRetransmission = DISABLE;
-	hcan.Init.ReceiveFifoLocked = DISABLE;
-	hcan.Init.TransmitFifoPriority = DISABLE;
-	if (HAL_CAN_Init(&hcan) != HAL_OK)
-	{
-		Error_Handler();
-	}
-
-	(void)HAL_CAN_Start(&hcan);
-}
-#endif
-
 /*EOF*/
+

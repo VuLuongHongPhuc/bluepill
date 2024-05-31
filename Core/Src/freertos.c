@@ -21,6 +21,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -46,11 +47,27 @@
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
+osThreadId Task01Handle;
+uint32_t Task01Buffer[ 512 ];
+osStaticThreadDef_t Task01ControlBlock;
+osThreadId Task02Handle;
+uint32_t Task02Buffer[ 256 ];
+osStaticThreadDef_t Task02ControlBlock;
+osThreadId Task03Handle;
+uint32_t Task03Buffer[ 256 ];
+osStaticThreadDef_t Task03ControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
 /* USER CODE END FunctionPrototypes */
+
+void Task_main(void const * argument);
+void Task_can(void const * argument);
+void Task_display(void const * argument);
+
+extern void MX_USB_DEVICE_Init(void);
+void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 /* GetIdleTaskMemory prototype (linked to static allocation support) */
 void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
@@ -67,6 +84,107 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
   /* place for user code */
 }
 /* USER CODE END GET_IDLE_TASK_MEMORY */
+
+/**
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
+void MX_FREERTOS_Init(void) {
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* definition and creation of Task01 */
+  osThreadStaticDef(Task01, Task_main, osPriorityNormal, 0, 512, Task01Buffer, &Task01ControlBlock);
+  Task01Handle = osThreadCreate(osThread(Task01), NULL);
+
+  /* definition and creation of Task02 */
+  osThreadStaticDef(Task02, Task_can, osPriorityBelowNormal, 0, 256, Task02Buffer, &Task02ControlBlock);
+  Task02Handle = osThreadCreate(osThread(Task02), NULL);
+
+  /* definition and creation of Task03 */
+  osThreadStaticDef(Task03, Task_display, osPriorityLow, 0, 256, Task03Buffer, &Task03ControlBlock);
+  Task03Handle = osThreadCreate(osThread(Task03), NULL);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+}
+
+/* USER CODE BEGIN Header_Task_main */
+/**
+  * @brief  Function implementing the Task01 thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_Task_main */
+__weak void Task_main(void const * argument)
+{
+  /* init code for USB_DEVICE */
+  MX_USB_DEVICE_Init();
+  /* USER CODE BEGIN Task_main */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Task_main */
+}
+
+/* USER CODE BEGIN Header_Task_can */
+/**
+* @brief Function implementing the Task02 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Task_can */
+__weak void Task_can(void const * argument)
+{
+  /* USER CODE BEGIN Task_can */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Task_can */
+}
+
+/* USER CODE BEGIN Header_Task_display */
+/**
+* @brief Function implementing the Task03 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_Task_display */
+__weak void Task_display(void const * argument)
+{
+  /* USER CODE BEGIN Task_display */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END Task_display */
+}
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
