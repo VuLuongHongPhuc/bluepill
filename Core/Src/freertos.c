@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "user_def.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,9 +53,9 @@ osStaticThreadDef_t Task01ControlBlock;
 osThreadId Task02Handle;
 uint32_t Task02Buffer[ 256 ];
 osStaticThreadDef_t Task02ControlBlock;
-osThreadId Task03Handle;
-uint32_t Task03Buffer[ 256 ];
-osStaticThreadDef_t Task03ControlBlock;
+osMessageQId host2deviceHandle;
+uint8_t myQueue01Buffer[ 8 * sizeof( USB_Host2Device_TypeDef ) ];
+osStaticMessageQDef_t myQueue01ControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -63,7 +63,6 @@ osStaticThreadDef_t Task03ControlBlock;
 /* USER CODE END FunctionPrototypes */
 
 void Task_main(void const * argument);
-void Task_can(void const * argument);
 void Task_display(void const * argument);
 
 extern void MX_USB_DEVICE_Init(void);
@@ -107,6 +106,11 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* definition and creation of host2device */
+  osMessageQStaticDef(host2device, 8, USB_Host2Device_TypeDef, myQueue01Buffer, &myQueue01ControlBlock);
+  host2deviceHandle = osMessageCreate(osMessageQ(host2device), NULL);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -117,12 +121,8 @@ void MX_FREERTOS_Init(void) {
   Task01Handle = osThreadCreate(osThread(Task01), NULL);
 
   /* definition and creation of Task02 */
-  osThreadStaticDef(Task02, Task_can, osPriorityBelowNormal, 0, 256, Task02Buffer, &Task02ControlBlock);
+  osThreadStaticDef(Task02, Task_display, osPriorityLow, 0, 256, Task02Buffer, &Task02ControlBlock);
   Task02Handle = osThreadCreate(osThread(Task02), NULL);
-
-  /* definition and creation of Task03 */
-  osThreadStaticDef(Task03, Task_display, osPriorityLow, 0, 256, Task03Buffer, &Task03ControlBlock);
-  Task03Handle = osThreadCreate(osThread(Task03), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -148,24 +148,6 @@ __weak void Task_main(void const * argument)
     osDelay(1);
   }
   /* USER CODE END Task_main */
-}
-
-/* USER CODE BEGIN Header_Task_can */
-/**
-* @brief Function implementing the Task02 thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_Task_can */
-__weak void Task_can(void const * argument)
-{
-  /* USER CODE BEGIN Task_can */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END Task_can */
 }
 
 /* USER CODE BEGIN Header_Task_display */

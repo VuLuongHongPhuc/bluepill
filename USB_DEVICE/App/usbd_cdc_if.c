@@ -128,9 +128,8 @@ static int8_t CDC_Receive_FS(uint8_t* pbuf, uint32_t *Len);
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
 
-//extern int8_t USB_Receive_callback(uint8_t* Buf, uint32_t *Len);
-//extern int8_t USB_Control_callback(uint8_t cmd, uint8_t* pbuf, uint16_t length);
-extern void onUsbReceive(uint8_t* Buf, uint32_t *Len);
+
+extern void onUsbReceive(const uint8_t* const pBuf, const uint32_t* const pLen);
 
 USBD_CDC_LineCodingTypeDef LineCoding = {
   115200,                       /* baud rate */
@@ -138,6 +137,7 @@ USBD_CDC_LineCodingTypeDef LineCoding = {
   0x00,                         /* parity - none */
   0x08                          /* nb. of bits 8 */
 };
+
 /* USER CODE END PRIVATE_FUNCTIONS_DECLARATION */
 
 /**

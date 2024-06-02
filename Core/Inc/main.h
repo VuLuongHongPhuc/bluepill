@@ -59,6 +59,17 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define LED_BUILTIN_Pin GPIO_PIN_13
 #define LED_BUILTIN_GPIO_Port GPIOC
+#define SPI2_CS_Pin GPIO_PIN_12
+#define SPI2_CS_GPIO_Port GPIOB
+#define MCP2515_INT_Pin GPIO_PIN_8
+#define MCP2515_INT_GPIO_Port GPIOA
+#define MCP2515_INT_EXTI_IRQn EXTI9_5_IRQn
+#define OLED_RES_Pin GPIO_PIN_6
+#define OLED_RES_GPIO_Port GPIOB
+#define OLED_DC_Pin GPIO_PIN_7
+#define OLED_DC_GPIO_Port GPIOB
+#define SPI1_CS_Pin GPIO_PIN_8
+#define SPI1_CS_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

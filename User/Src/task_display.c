@@ -112,19 +112,19 @@ void Task_display(void *argument)
 
 /* SPI Hardware dependencies */
 
-inline void SPI_Transmit(uint8_t* data, uint16_t len)
+static inline void SPI_Transmit(uint8_t* data, uint16_t len)
 {
 	//HAL_SPI_Transmit(hspi, pData, Size, Timeout); // Timeout millisecond
 	HAL_SPI_Transmit(&hspi1, data, len, 20);
 }
 
-inline void SPI_Delay(uint32_t milis)
+static inline void SPI_Delay(uint32_t milis)
 {
 	osDelay(milis);
 }
 
 /* SPI CS -> PB8 */
-inline void GPIO_WritePinCS(GPIO_PinState PinState)
+static inline void GPIO_WritePinCS(GPIO_PinState PinState)
 {
 	if (PinState != GPIO_PIN_RESET)
 	{
@@ -137,7 +137,7 @@ inline void GPIO_WritePinCS(GPIO_PinState PinState)
 }
 
 /* SPI DC -> PB7 */
-inline void GPIO_WritePinDC(GPIO_PinState PinState)
+static inline void GPIO_WritePinDC(GPIO_PinState PinState)
 {
 	if (PinState != GPIO_PIN_RESET)
 	{
@@ -150,7 +150,7 @@ inline void GPIO_WritePinDC(GPIO_PinState PinState)
 }
 
 /* SPI RESET -> PB6 */
-inline void GPIO_WritePinRESET(GPIO_PinState PinState)
+static inline void GPIO_WritePinRESET(GPIO_PinState PinState)
 {
 	if (PinState != GPIO_PIN_RESET)
 	{
