@@ -10,13 +10,15 @@
 
 #include <stdint.h>
 
+/* size = 16 bytes */
 typedef struct __attribute__((packed))
 {
-	uint8_t to;
+	uint8_t toDevice;
 	uint8_t dlc;
-	uint8_t reserved;
-	uint8_t data[16];
-}USB_Host2Device_TypeDef;
+	uint8_t reserved[2];
+	uint32_t id;
+	uint8_t data[8];
+}Message_FromHost_TypeDef;
 
 
 #endif /* INC_USER_DEF_H_ */

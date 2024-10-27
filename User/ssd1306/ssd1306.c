@@ -181,7 +181,7 @@ bool SSD1306_SPI_Initialize(StructSpi* pSpi)
 void SSD1306_Initialize(uint8_t vccstate, bool reset)
 {
 	// pause wait display to power up
-	_pSpi->delay(500);
+	_pSpi->Delay(500);
 
 	// set default value
 	_pSpi->CS(0);
@@ -204,13 +204,13 @@ void SSD1306_Initialize(uint8_t vccstate, bool reset)
 		_pSpi->RES(1);
 
 		// VDD (3.3V) goes high at start, lets just chill for a ms
-		_pSpi->delay(1);
+		_pSpi->Delay(1);
 
 		// bring reset LOW
 		_pSpi->RES(0);
 
 		// wait 10ms
-		_pSpi->delay(10);
+		_pSpi->Delay(10);
 
 		// bring out of reset
 		_pSpi->RES(1);

@@ -34,7 +34,7 @@ typedef struct __attribute__((packed))
 	uint32_t id;
 	uint8_t dlc;
 	uint8_t data[8];
-}CAN2USB_Msg_TypeDef;
+}CAN_Msg_TypeDef;
 
 
 /* Private define ------------------------------------------------------------*/
@@ -73,15 +73,17 @@ void onUsbReceive(const uint8_t* const pBuf, const uint32_t* const pLen)
 {
 	static TickType_t last_time = 0;
 	static int index = 0;
-	static USB_Host2Device_TypeDef msg_from_usb;
+	static Message_FromHost_TypeDef msg_from_usb;
 	static uint16_t less_counter = 0;
 
+	/* Is it time for vATask() to run? */
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 
 	TickType_t time_elapse = xTaskGetTickCount() - last_time;
 	time_elapse *= portTICK_PERIOD_MS;
 
-	/* if > 20 ms -> reset index */
+	/* if > 20 ms -> timeout continuity */
 	if (time_elapse > 20)
 	{
 		index = 0;
@@ -91,10 +93,8 @@ void onUsbReceive(const uint8_t* const pBuf, const uint32_t* const pLen)
 	}
 
 
-
-
-	// debug
-	if (*pLen < sizeof(USB_Host2Device_TypeDef))
+	// debug : check if we receive less than sizeof(Message_FromHost_TypeDef)
+	if (*pLen < sizeof(Message_FromHost_TypeDef))
 	{
 		less_counter++;
 	}
@@ -105,34 +105,30 @@ void onUsbReceive(const uint8_t* const pBuf, const uint32_t* const pLen)
 		_usb_rxbuf[index++] = pBuf[i];
 	}
 
-	if (index >= sizeof(USB_Host2Device_TypeDef))
+	if (index >= sizeof(Message_FromHost_TypeDef))
 	{
-		memcpy( &msg_from_usb, &_usb_rxbuf[0], sizeof(USB_Host2Device_TypeDef));
+		memcpy( &msg_from_usb, &_usb_rxbuf[0], sizeof(Message_FromHost_TypeDef));
 
-		index = 0;
+		index -= sizeof(Message_FromHost_TypeDef);
 
 		/* put message in queue */
-		xQueueSend(host2deviceHandle, &msg_from_usb, DEF_TIMEOUT_QUEUE_SEND);
+		xQueueSendFromISR(host2deviceHandle, &msg_from_usb, &xHigherPriorityTaskWoken);
 	}
 
-//	if ( (_usb_rxbuf[0] == 0x5A) && (_usb_rxbuf[1] == 0x63))
-//	{
-//		HAL_GPIO_TogglePin(LED_BUILTIN_GPIO_Port, LED_BUILTIN_Pin);
-//	}
+	/* Yield if xHigherPriorityTaskWoken is true. */
+	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+
 }
 
 
 
 void Task_main(void *argument)
 {
-	static TickType_t curr_time = 0;
-
 	xSemaphore = xSemaphoreCreateBinaryStatic( &xSemaphoreBuffer );
 	configASSERT( xSemaphore );
 
-	static USB_Host2Device_TypeDef usb_msg;
-
-	static CAN2USB_Msg_TypeDef USB_buf = {0};
+	static Message_FromHost_TypeDef usb_msg;
+	static CAN_Msg_TypeDef msg_to_host = {0};
 
 	/* init code for USB_DEVICE */
 	MX_USB_DEVICE_Init();
@@ -162,57 +158,48 @@ void Task_main(void *argument)
 
 		if( xSemaphoreTake( xSemaphore, ( TickType_t ) DEF_TIMEOUT_SEMAPHORE ) == pdTRUE )
 		{
-			/*/INT triggered -> CAN message received */
+			/* /INT triggered -> CAN message received ready */
 
 			if (MCP2515_ReadMessage(&canMsg) == ERROR_OK)
 			{
-				// id can : 0x80 01 03 21 -> bit.31 = 1
+				// id can |= (CAN_EFF_FLAG | CAN_RTR_FLAG | CAN_ERR_FLAG)
 
 				HAL_GPIO_TogglePin(LED_BUILTIN_GPIO_Port, LED_BUILTIN_Pin);
 
-				USB_buf.id = canMsg.can_id;
-				USB_buf.dlc = (canMsg.can_dlc > 8) ? 8 : canMsg.can_dlc;
+				msg_to_host.id = canMsg.can_id;
 
-				USB_buf.data[0] = canMsg.data[0];
-				USB_buf.data[1] = canMsg.data[1];
-				USB_buf.data[2] = canMsg.data[2];
-				USB_buf.data[3] = canMsg.data[3];
-				USB_buf.data[4] = canMsg.data[4];
-				USB_buf.data[5] = canMsg.data[5];
-				USB_buf.data[6] = canMsg.data[6];
-				USB_buf.data[7] = canMsg.data[7];
+				msg_to_host.dlc = (canMsg.can_dlc > 8) ? 8 : canMsg.can_dlc;
 
-				CDC_Transmit_FS((uint8_t*)&USB_buf, sizeof(USB_buf));
+				msg_to_host.data[0] = canMsg.data[0];
+				msg_to_host.data[1] = canMsg.data[1];
+				msg_to_host.data[2] = canMsg.data[2];
+				msg_to_host.data[3] = canMsg.data[3];
+				msg_to_host.data[4] = canMsg.data[4];
+				msg_to_host.data[5] = canMsg.data[5];
+				msg_to_host.data[6] = canMsg.data[6];
+				msg_to_host.data[7] = canMsg.data[7];
+
+				CDC_Transmit_FS((uint8_t*)&msg_to_host, sizeof(msg_to_host));
 			}
 		}
 
-		// TODO: manage incoming queue message
-		TickType_t time_elapse = xTaskGetTickCount() - curr_time;
 
-		//if (xQueueReceive(host2deviceHandle, &usb_msg, ( TickType_t ) DEF_TIMEOUT_QUEUE_RECEIVE) == pdTRUE)
-		if (time_elapse > 2000)
+		if (xQueueReceive(host2deviceHandle, &usb_msg, ( TickType_t ) DEF_TIMEOUT_QUEUE_RECEIVE) == pdTRUE)
 		{
-			curr_time = xTaskGetTickCount();
+			// TODO: get status for extended
+			/* extended id -> add CAN_EFF_FLAG */
+			canMsg.can_id = usb_msg.id | CAN_EFF_FLAG;
 
-			canMsg.can_id = 0x1f000004 | CAN_EFF_FLAG;
-			canMsg.can_dlc = 3;
-			canMsg.data[0] = 0x01;
-			canMsg.data[1] = 0x02;
-			canMsg.data[2] = 0x03;
-//			canMsg.can_id = (usb_msg.data[3] << 24) |
-//					        (usb_msg.data[2] << 16) |
-//					        (usb_msg.data[1] << 8)  |
-//					        (usb_msg.data[0]);
-//
-//			canMsg.can_dlc = usb_msg.data[5];
-//
-//			for(int i=0; i < 8; i++)
-//			{
-//				canMsg.data[i] = usb_msg.data[6+i];
-//			}
+			canMsg.can_dlc = usb_msg.dlc;
+
+			for(int i=0; i < 8; i++)
+			{
+				canMsg.data[i] = usb_msg.data[i];
+			}
 
 			MCP2515_WriteMessage(&canMsg);
 		}
+
 	}
 
 }
@@ -271,11 +258,11 @@ static inline void SPI_Transmit(uint8_t data)
 
 static inline uint8_t SPI_Receive(void)
 {
-	uint8_t rxbuf = 0;
+	uint8_t c = 0;
 
-	HAL_SPI_Receive(&hspi2, &rxbuf, 1, 20);
+	HAL_SPI_Receive(&hspi2, &c, 1, 20);
 
-	return rxbuf;
+	return c;
 }
 
 

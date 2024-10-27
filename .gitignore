@@ -1,3 +1,4 @@
 
-# ignore file and folder
+# Project files
 Debug/
+#.settings/

@@ -54,7 +54,7 @@ osThreadId Task02Handle;
 uint32_t Task02Buffer[ 256 ];
 osStaticThreadDef_t Task02ControlBlock;
 osMessageQId host2deviceHandle;
-uint8_t myQueue01Buffer[ 8 * sizeof( USB_Host2Device_TypeDef ) ];
+uint8_t myQueue01Buffer[ 8 * sizeof( Message_FromHost_TypeDef ) ];
 osStaticMessageQDef_t myQueue01ControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -108,7 +108,7 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the queue(s) */
   /* definition and creation of host2device */
-  osMessageQStaticDef(host2device, 8, USB_Host2Device_TypeDef, myQueue01Buffer, &myQueue01ControlBlock);
+  osMessageQStaticDef(host2device, 8, Message_FromHost_TypeDef, myQueue01Buffer, &myQueue01ControlBlock);
   host2deviceHandle = osMessageCreate(osMessageQ(host2device), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */

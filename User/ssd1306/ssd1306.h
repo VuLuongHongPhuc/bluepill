@@ -119,16 +119,16 @@ extern "C" {
 /* Typedef -----------------------------------------------------------*/
 
 /* NOTES: To provide these function */
-typedef void (*functWritePin)(uint8_t);
+typedef void (*functWritePin)(uint8_t state);
 typedef void (*functWrite)(uint8_t* data, uint16_t len);
-typedef void (*functDelay)(uint32_t);
+typedef void (*functDelay)(uint32_t time);
 
-typedef struct{
+typedef struct {
 	functWritePin CS;
 	functWritePin DC;
 	functWritePin RES;
 	functWrite Write;
-	functDelay delay;
+	functDelay Delay;
 }StructSpi;
 
 

@@ -7,6 +7,13 @@ Model for future project:
 
 IDE Tools version:
   - STM32CubeIDE v1.13.2
+  
+# Flasher pin
+- SWO  -> PB3   -> pin.39
+- NRST -> R     -> pin.7
+- DIO  -> SWDIO -> pin.34
+- CLK  -> SWCLK -> pin.37
+
 
 # LED_BUILTIN pin configuration
 - PC13 ouput

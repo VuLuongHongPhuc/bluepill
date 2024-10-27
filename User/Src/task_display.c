@@ -46,7 +46,7 @@ void Task_display(void *argument)
 
 
 	// init. SSD1306
-	SPI.delay = &SPI_Delay;
+	SPI.Delay = &SPI_Delay;
 	SPI.Write = &SPI_Transmit;
 	SPI.CS    = &GPIO_WritePinCS;
 	SPI.DC    = &GPIO_WritePinDC;

@@ -581,12 +581,6 @@ MCP_ERROR MCP2515_ReadMessage(struct can_frame *frame)
 
 
 
-
-
-
-
-
-
 void MCP2515_PrepareId(uint8_t *buffer, const bool ext, const uint32_t id)
 {
     uint16_t canid = (uint16_t)(id & 0x0FFFF);
@@ -610,6 +604,14 @@ void MCP2515_PrepareId(uint8_t *buffer, const bool ext, const uint32_t id)
     }
 }
 
+
+/*! \brief Move the message to buffer for TX
+ *
+ *  \param[in] txbn Index of the buffer
+ *  \param[in] Frame to copy
+ *  \return MCP_ERROR
+ *  \description Call MCP2515_WriteMessage to transmit message to CAN
+ * */
 MCP_ERROR MCP2515_TransmitMessage(const TXBn txbn, const struct can_frame *frame)
 {
 	/* check dlc length */
@@ -642,6 +644,8 @@ MCP_ERROR MCP2515_TransmitMessage(const TXBn txbn, const struct can_frame *frame
     return ERROR_OK;
 }
 
+/*! \brief Find a free buffer to move the message in
+ * */
 MCP_ERROR MCP2515_WriteMessage(const struct can_frame *frame)
 {
     if (frame->can_dlc > CAN_MAX_DLEN) {
@@ -650,10 +654,15 @@ MCP_ERROR MCP2515_WriteMessage(const struct can_frame *frame)
 
     TXBn txBuffers[TXBnMax] = {TXB0, TXB1, TXB2};
 
+    /* find a free buffer to write */
     for (int i=0; i<TXBnMax; i++)
     {
         const TXBn_REGS_TypeDef *txbuf = &TXB[txBuffers[i]];
+
+        /* Retrieve register TX */
         uint8_t ctrlval = MCP2515_ReadRegister(txbuf->CTRL);
+
+        /* Is buffer free ? */
         if ( (ctrlval & TXB_TXREQ) == 0 )
         {
             return MCP2515_TransmitMessage(txBuffers[i], frame);
